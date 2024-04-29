@@ -1,0 +1,642 @@
+#1
+
+#!/bin/bash
+
+# a. Display OS version, release number, kernel version
+echo "Operating System Information:"
+cat /etc/os-release | grep -E "VERSION|NAME|VERSION_ID"
+uname -r
+echo
+
+# b. Display top 10 processes in descending order
+echo "Top 10 Processes:"
+ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n 11
+echo
+
+# c. Display processes with highest memory usage
+echo "Processes with Highest Memory Usage:"
+ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n 6
+echo
+
+# d. Display current logged-in user and log name
+echo "Current Logged-in User and Log Name:"
+who
+echo
+
+# Display current shell, home directory, operating system type, current path, current working directory
+echo "System Information:"
+echo "Current Shell: $SHELL"
+echo "Home Directory: $HOME"
+echo "Operating System Type: $(uname -o)"
+echo "Current Path: $PATH"
+echo "Current Working Directory: $(pwd)"
+
+
+----------------------------------------------------------------------
+#2 
+
+
+#include<stdio.h>
+#include<stdlib.h>
+int main() {
+ FILE *fptr1, *fptr2;
+ char filename[100], c;
+ printf("Enter the Filename to open for reading: ");
+ scanf("%s", filename);
+ fptr1 = fopen(filename, "r");
+ if (fptr1 == NULL) {
+ printf("Cannot open file %s\n", filename);
+ exit(0);
+ }
+ printf("Enter the Filename to open for writing: ");
+ scanf("%s", filename);
+ fptr2 = fopen(filename, "w");
+ if (fptr2 == NULL) {
+ printf("Cannot open file %s\n", filename);
+ exit(0);
+ }
+ c = fgetc(fptr1);
+ while (c != EOF) {
+ fputc(c, fptr2);
+ c = fgetc(fptr1);
+ }
+ printf("Contents copied to %s\n", filename);
+ fclose(fptr1);
+ fclose(fptr2);
+ return 0;
+}
+
+--------------------------------------------------------------------
+#3
+
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid; // Variable to store process ID
+
+    pid = fork(); // Create a child process
+
+    if (pid < 0) { // Error handling
+        fprintf(stderr, "Fork failed\n");
+        return 1;
+    } else if (pid == 0) { // Child process
+        pid_t child_pid = getpid();
+        pid_t parent_pid = getppid();
+        printf("Child process: My PID is %d, My parent's PID is %d\n", child_pid, parent_pid);
+    } else { // Parent process
+        pid_t parent_pid = getpid();
+        pid_t grandparent_pid = getppid();
+        printf("Parent process: My PID is %d, My parent's PID is %d\n", parent_pid, grandparent_pid);
+    }
+
+    return 0;
+}
+
+--------------------------------------------------------------------
+#4
+
+
+#include <stdio.h>
+
+void fcfs(int arrival_time[], int burst_time[], int n) {
+    int completion_time[n], waiting_time[n], turnaround_time[n];
+
+    completion_time[0] = burst_time[0];
+    waiting_time[0] = 0;
+    turnaround_time[0] = burst_time[0];
+
+    for (int i = 1; i < n; i++) {
+        completion_time[i] = completion_time[i - 1] + burst_time[i];
+        turnaround_time[i] = completion_time[i] - arrival_time[i];
+        waiting_time[i] = turnaround_time[i] - burst_time[i];
+    }
+
+    float total_waiting_time = 0, total_turnaround_time = 0;
+    for (int i = 0; i < n; i++) {
+        total_waiting_time += waiting_time[i];
+        total_turnaround_time += turnaround_time[i];
+    }
+
+    printf("Process\t Arrival Time\t Burst Time\t Waiting Time\t Turnaround Time\n");
+    for (int i = 0; i < n; i++) {
+        printf("P%d\t\t %d\t\t %d\t\t %d\t\t %d\n", i + 1, arrival_time[i], burst_time[i], waiting_time[i], turnaround_time[i]);
+    }
+
+    printf("\nAverage Waiting Time: %.2f\n", total_waiting_time / n);
+    printf("Average Turnaround Time: %.2f\n", total_turnaround_time / n);
+}
+
+int main() {
+    int arrival_time[] = {0, 1, 2, 3};
+    int burst_time[] = {5, 3, 8, 6};
+    int n = sizeof(arrival_time) / sizeof(arrival_time[0]);
+
+    fcfs(arrival_time, burst_time, n);
+
+    return 0;
+}
+
+-------------------------------------------------------------------
+#5
+
+
+#include <stdio.h>
+#include <stdbool.h>
+
+// Structure to represent a process
+typedef struct {
+    int process_id;
+    int arrival_time;
+    int burst_time;
+    int remaining_time;
+    int waiting_time;
+    int turnaround_time;
+    bool completed;
+} Process;
+
+// Function to find process with shortest remaining time
+int findShortestProcess(Process processes[], int num_processes, int current_time) {
+    int shortest_index = -1;
+    int shortest_time = __INT_MAX__;
+
+    for (int i = 0; i < num_processes; i++) {
+        if (!processes[i].completed && processes[i].arrival_time <= current_time &&
+            processes[i].remaining_time < shortest_time) {
+            shortest_index = i;
+            shortest_time = processes[i].remaining_time;
+        }
+    }
+
+    return shortest_index;
+}
+
+// Function to calculate waiting time and turnaround time for each process
+void calculateTimes(Process processes[], int num_processes) {
+    int current_time = 0;
+    int total_waiting_time = 0;
+    int total_turnaround_time = 0;
+
+    // Calculate remaining time for each process
+    for (int i = 0; i < num_processes; i++) {
+        processes[i].remaining_time = processes[i].burst_time;
+    }
+
+    // Continue until all processes are completed
+    while (true) {
+        int shortest_index = findShortestProcess(processes, num_processes, current_time);
+        if (shortest_index == -1) {
+            break; // All processes completed
+        }
+
+        // Execute process for one time unit
+        processes[shortest_index].remaining_time--;
+        current_time++;
+
+        // Update waiting time and turnaround time
+        for (int i = 0; i < num_processes; i++) {
+            if (i != shortest_index && !processes[i].completed && processes[i].arrival_time <= current_time) {
+                processes[i].waiting_time++;
+            }
+        }
+
+        // Check if process completed
+        if (processes[shortest_index].remaining_time == 0) {
+            processes[shortest_index].turnaround_time = current_time - processes[shortest_index].arrival_time;
+            total_waiting_time += processes[shortest_index].waiting_time;
+            total_turnaround_time += processes[shortest_index].turnaround_time;
+            processes[shortest_index].completed = true;
+        }
+    }
+
+    // Calculate average waiting time and average turnaround time
+    float avg_waiting_time = (float)total_waiting_time / num_processes;
+    float avg_turnaround_time = (float)total_turnaround_time / num_processes;
+
+    // Display process details
+    printf("Process\t Arrival Time\t Burst Time\t Waiting Time\t Turnaround Time\n");
+    for (int i = 0; i < num_processes; i++) {
+        printf("%d\t\t %d\t\t\t %d\t\t\t %d\t\t\t %d\n", processes[i].process_id, processes[i].arrival_time,
+               processes[i].burst_time, processes[i].waiting_time, processes[i].turnaround_time);
+    }
+    printf("\nAverage Waiting Time: %.2f\n", avg_waiting_time);
+    printf("Average Turnaround Time: %.2f\n", avg_turnaround_time);
+}
+
+int main() {
+    Process processes[] = {{1, 0, 5, 0, 0, 0, false}, {2, 1, 3, 0, 0, 0, false}, {3, 2, 8, 0, 0, 0, false},
+                           {4, 3, 6, 0, 0, 0, false}};
+    int num_processes = sizeof(processes) / sizeof(processes[0]);
+
+    calculateTimes(processes, num_processes);
+
+    return 0;
+}
+--------------------------------------------------------------------
+#6
+
+
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 5
+#define NUM_PRODUCERS 2
+#define NUM_CONSUMERS 2
+
+sem_t mutex, full, empty;
+int buffer[BUFFER_SIZE];
+int in = 0, out = 0;
+
+void *producer(void *arg) {
+    int item = 1;
+    while (1) {
+        sleep(1);
+        sem_wait(&empty);
+        sem_wait(&mutex);
+        
+        // Produce item
+        buffer[in] = item;
+        printf("Produced: %d\n", item++);
+        in = (in + 1) % BUFFER_SIZE;
+        
+        sem_post(&mutex);
+        sem_post(&full);
+    }
+}
+
+void *consumer(void *arg) {
+    while (1) {
+        sleep(2);
+        sem_wait(&full);
+        sem_wait(&mutex);
+        
+        // Consume item
+        int item = buffer[out];
+        printf("Consumed: %d\n", item);
+        out = (out + 1) % BUFFER_SIZE;
+        
+        sem_post(&mutex);
+        sem_post(&empty);
+    }
+}
+
+int main() {
+    pthread_t producers[NUM_PRODUCERS], consumers[NUM_CONSUMERS];
+    
+    sem_init(&mutex, 0, 1);
+    sem_init(&full, 0, 0);
+    sem_init(&empty, 0, BUFFER_SIZE);
+
+    // Create producer threads
+    for (int i = 0; i < NUM_PRODUCERS; i++) {
+        pthread_create(&producers[i], NULL, producer, NULL);
+    }
+
+    // Create consumer threads
+    for (int i = 0; i < NUM_CONSUMERS; i++) {
+        pthread_create(&consumers[i], NULL, consumer, NULL);
+    }
+
+    // Join threads
+    for (int i = 0; i < NUM_PRODUCERS; i++) {
+        pthread_join(producers[i], NULL);
+    }
+
+    for (int i = 0; i < NUM_CONSUMERS; i++) {
+        pthread_join(consumers[i], NULL);
+    }
+
+    sem_destroy(&mutex);
+    sem_destroy(&full);
+    sem_destroy(&empty);
+
+    return 0;
+}
+
+--------------------------------------------------------------------
+#7
+
+
+
+#include <stdio.h>
+#include <stdbool.h>
+
+#define NUM_PROCESSES 5
+#define NUM_RESOURCES 3
+
+int available[NUM_RESOURCES];
+int max[NUM_PROCESSES][NUM_RESOURCES];
+int allocation[NUM_PROCESSES][NUM_RESOURCES];
+int need[NUM_PROCESSES][NUM_RESOURCES];
+bool finished[NUM_PROCESSES];
+
+// Function to check if the current state is safe
+bool isSafe(int process) {
+    for (int i = 0; i < NUM_RESOURCES; i++) {
+        if (need[process][i] > available[i])
+            return false;
+    }
+    return true;
+}
+
+// Function to execute Banker's Algorithm
+void bankersAlgorithm() {
+    int sequence[NUM_PROCESSES];
+    int work[NUM_RESOURCES];
+
+    // Initialize work array
+    for (int i = 0; i < NUM_RESOURCES; i++) {
+        work[i] = available[i];
+    }
+
+    int count = 0;
+    while (count < NUM_PROCESSES) {
+        bool found = false;
+        for (int i = 0; i < NUM_PROCESSES; i++) {
+            if (!finished[i] && isSafe(i)) {
+                // Process can be allocated resources
+                sequence[count++] = i;
+                finished[i] = true;
+                found = true;
+                
+                // Release allocated resources
+                for (int j = 0; j < NUM_RESOURCES; j++) {
+                    work[j] += allocation[i][j];
+                }
+                break;
+            }
+        }
+        if (!found) {
+            printf("System is in unsafe state. Deadlock detected!\n");
+            return;
+        }
+    }
+
+    // Print safe sequence
+    printf("Safe Sequence: ");
+    for (int i = 0; i < NUM_PROCESSES; i++) {
+        printf("%d ", sequence[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    // Initialize available resources
+    printf("Enter the available instances of each resource:\n");
+    for (int i = 0; i < NUM_RESOURCES; i++) {
+        scanf("%d", &available[i]);
+    }
+
+    // Initialize maximum resource allocation for each process
+    printf("Enter the maximum resource allocation for each process:\n");
+    for (int i = 0; i < NUM_PROCESSES; i++) {
+        printf("Process %d: ", i);
+        for (int j = 0; j < NUM_RESOURCES; j++) {
+            scanf("%d", &max[i][j]);
+        }
+    }
+
+    // Initialize allocated resources for each process
+    printf("Enter the allocated resources for each process:\n");
+    for (int i = 0; i < NUM_PROCESSES; i++) {
+        printf("Process %d: ", i);
+        for (int j = 0; j < NUM_RESOURCES; j++) {
+            scanf("%d", &allocation[i][j]);
+            // Calculate need
+            need[i][j] = max[i][j] - allocation[i][j];
+        }
+        finished[i] = false;
+    }
+
+    // Execute Banker's Algorithm
+    bankersAlgorithm();
+
+    return 0;
+}
+
+---------------------------------------------------------------------
+#8
+
+
+#include <stdio.h>
+
+#define MEMORY_SIZE 100
+#define MAX_PARTITIONS 10
+
+typedef struct {
+    int start_address;
+    int end_address;
+    int size;
+    int allocated;
+} Partition;
+
+Partition memory[MAX_PARTITIONS];
+int num_partitions = 0;
+
+// Function to initialize memory
+void initializeMemory() {
+    memory[0].start_address = 0;
+    memory[0].end_address = MEMORY_SIZE - 1;
+    memory[0].size = MEMORY_SIZE;
+    memory[0].allocated = 0;
+    num_partitions = 1;
+}
+
+// Function to display memory
+void displayMemory() {
+    printf("Memory Layout:\n");
+    printf("Start Address\tEnd Address\tSize\tAllocated\n");
+    for (int i = 0; i < num_partitions; i++) {
+        printf("%d\t\t%d\t\t%d\t%s\n", memory[i].start_address, memory[i].end_address,
+               memory[i].size, memory[i].allocated ? "Yes" : "No");
+    }
+    printf("\n");
+}
+
+// Function to allocate memory using First Fit algorithm
+void firstFit(int size) {
+    for (int i = 0; i < num_partitions; i++) {
+        if (!memory[i].allocated && memory[i].size >= size) {
+            memory[i].allocated = 1;
+            if (memory[i].size > size) {
+                memory[num_partitions].start_address = memory[i].start_address + size;
+                memory[num_partitions].end_address = memory[i].end_address;
+                memory[num_partitions].size = memory[i].size - size;
+                memory[num_partitions].allocated = 0;
+                num_partitions++;
+            }
+            memory[i].size = size;
+            printf("Memory allocated using First Fit.\n");
+            return;
+        }
+    }
+    printf("Memory allocation failed using First Fit.\n");
+}
+
+int main() {
+    int size;
+    initializeMemory();
+
+    printf("Enter memory size to allocate: ");
+    scanf("%d", &size);
+    firstFit(size);
+    displayMemory();
+
+    return 0;
+}
+
+---------------------------------------------------------------------
+#9
+
+
+
+#include <stdio.h>
+
+#define MAX_FRAMES 3
+#define MAX_PAGES 20
+
+int main() {
+    int frames[MAX_FRAMES];
+    int pages[MAX_PAGES];
+    int page_faults = 0;
+    int next_frame = 0; // Pointer to the next frame to be replaced
+
+    // Initialize frames to -1 indicating empty frame
+    for (int i = 0; i < MAX_FRAMES; i++) {
+        frames[i] = -1;
+    }
+
+    // Generate a sequence of page references (for demonstration)
+    printf("Page reference sequence: ");
+    for (int i = 0; i < MAX_PAGES; i++) {
+        pages[i] = rand() % 10; // Random page numbers between 0 and 9
+        printf("%d ", pages[i]);
+    }
+    printf("\n");
+
+    // Simulate page replacement
+    for (int i = 0; i < MAX_PAGES; i++) {
+        int page = pages[i];
+        int page_found = 0;
+
+        // Check if the page is already in memory
+        for (int j = 0; j < MAX_FRAMES; j++) {
+            if (frames[j] == page) {
+                page_found = 1;
+                break;
+            }
+        }
+
+        // If page is not found in memory (page fault)
+        if (!page_found) {
+            printf("Page fault for page %d\n", page);
+            page_faults++;
+
+            // Replace the page using FIFO policy
+            frames[next_frame] = page;
+            next_frame = (next_frame + 1) % MAX_FRAMES;
+        }
+
+        // Display current state of frames
+        printf("Current state of frames: ");
+        for (int j = 0; j < MAX_FRAMES; j++) {
+            if (frames[j] == -1) {
+                printf("Empty ");
+            } else {
+                printf("%d ", frames[j]);
+            }
+        }
+        printf("\n");
+    }
+
+    printf("Total page faults: %d\n", page_faults);
+
+    return 0;
+}
+
+--------------------------------------------------------------------
+
+#10
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+// Function to calculate the absolute difference between two numbers
+int abs_diff(int a, int b) {
+    return abs(a - b);
+}
+
+// Function to find the index of the shortest seek time request
+int find_shortest_seek_time(int *requests, int num_requests, int head_position) {
+    int shortest_seek_time = INT_MAX;
+    int shortest_index = -1;
+
+    for (int i = 0; i < num_requests; i++) {
+        if (!requests[i]) {
+            continue; // Skip processed requests
+        }
+
+        int seek_time = abs_diff(requests[i], head_position);
+        if (seek_time < shortest_seek_time) {
+            shortest_seek_time = seek_time;
+            shortest_index = i;
+        }
+    }
+
+    return shortest_index;
+}
+
+// Function to calculate the total seek time
+int calculate_seek_time(int *requests, int num_requests, int start_position) {
+    int total_seek_time = 0;
+    int head_position = start_position;
+
+    for (int i = 0; i < num_requests; i++) {
+        int shortest_index = find_shortest_seek_time(requests, num_requests, head_position);
+        if (shortest_index == -1) {
+            break; // All requests processed
+        }
+
+        total_seek_time += abs_diff(requests[shortest_index], head_position);
+        head_position = requests[shortest_index];
+        requests[shortest_index] = 0; // Mark request as processed
+    }
+
+    return total_seek_time;
+}
+
+int main() {
+    int num_requests, start_position;
+
+    printf("Enter the number of disk requests: ");
+    scanf("%d", &num_requests);
+
+    printf("Enter the starting head position: ");
+    scanf("%d", &start_position);
+
+    int *requests = (int *)malloc(num_requests * sizeof(int));
+    if (requests == NULL) {
+        printf("Memory allocation failed\n");
+        return 1;
+    }
+
+    printf("Enter the disk request positions:\n");
+    for (int i = 0; i < num_requests; i++) {
+        scanf("%d", &requests[i]);
+    }
+
+    int total_seek_time = calculate_seek_time(requests, num_requests, start_position);
+
+    printf("Total seek time using SSTF: %d\n", total_seek_time);
+
+    free(requests);
+    return 0;
+}
+
